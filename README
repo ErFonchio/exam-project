@@ -1,0 +1,7 @@
+# PPO algorithm
+
+1. Initialization
+    - $\forall i \in \{0, ..., n\}$ initialize at random $\theta_i$: policy parameters
+    - $\phi$: value function parameters
+    - $\beta, \omega$: parameters for tube widths and beaker width
+2. 

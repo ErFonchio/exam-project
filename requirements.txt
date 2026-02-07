@@ -1,0 +1,6 @@
+numpy==1.24.4
+scipy
+gymnasium==0.29.1
+gymnasium[Mujoco]
+torch 
+pillow
