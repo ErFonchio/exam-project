@@ -190,8 +190,8 @@ class PPO(nn.Module):
 
             if self.alternating_step > 0:
                 if (i % self.alternating_step) == 0:
-                    env = self.switch_env()
-                    #self.std = 1
+                    # env = self.switch_env()
+                    self.std = 1
             else:
                 env = self.env1
 
@@ -316,20 +316,20 @@ class PPO(nn.Module):
             print(f"[train]: starting dataset creation at iteration n {i}")
 
             # decaying std
-            # self.std = self.std - 0.025*self.std
-            # self.run.log({"std": self.std})
+            self.std = self.std - 0.025*self.std
+            self.run.log({"std": self.std})
             
             # alternating task
             if self.alternating_step > 0:
                 if (i % self.alternating_step) == 0:
                     env = self.switch_env()
-                    #self.std = 1
+                    self.std = 1
             else:
                 env = self.env1
 
             with torch.no_grad():
                 
-                #self.eval_model(env)
+                self.eval_model(env)
                 adv_list = []
                 cum_reward = 0
                 for _ in range(N): #for each actor
@@ -372,9 +372,6 @@ class PPO(nn.Module):
 
                 adv_std, adv_mean = torch.std_mean(torch.tensor(adv_list))
                 print(f"[training]: avg cum reward {cum_reward / N}")
-                if (cum_reward / N) > 500:
-                    self.save_parameters(path="partial_models"+str(i)+"025")
-                
                 if self.toggle_log:
                     self.run.log({
                         "avg cum_reward": cum_reward / N,
@@ -427,8 +424,8 @@ class PPO(nn.Module):
                     loss_value.backward()
 
                     # gradient clipping
-                    # [torch.nn.utils.clip_grad_norm_(actor.parameters(), 0.8) for actor in self.actor_list]
-                    # torch.nn.utils.clip_grad_norm_(self.critic.parameters(), 0.8)
+                    [torch.nn.utils.clip_grad_norm_(actor.parameters(), 0.8) for actor in self.actor_list]
+                    torch.nn.utils.clip_grad_norm_(self.critic.parameters(), 0.8)
                     
                     # optimization step
                     [actor.optimizer.step() for actor in self.actor_list]
@@ -506,8 +503,6 @@ class PPO(nn.Module):
         return list(map(lambda x: x[0], trajectory))
     
     def save_parameters(self, path):
-
-        os.makedirs(path, exist_ok=True)
         torch.save({
             "model_state_dict": self.state_dict()
         }, path + "/model_state_dict.pt")
@@ -582,29 +577,29 @@ if __name__ == '__main__':
     env2 = HalfCheetahEnv(xml_file="half_cheetah_bigleg.xml", ctrl_cost_weight=0.1)
 
     epochs = 10
-    training_iterations = 120
+    training_iterations = 20
     batch_size = 64
-    trajectory_length = 800
+    trajectory_length = 1000
     n_actors = 10
     in_features = env1.observation_space.shape[0]
     out_features = env1.action_space.shape[0]
     hidden_features = 64
-    actor_learning_rate = 5e-5
-    critic_learning_rate = 5e-5
+    actor_learning_rate = 5e-4
+    critic_learning_rate = 5e-3
     gamma = 0.99
     lambda_ = 0.95
     epsilon = 0.2
-    beta = 0.25
+    beta = 0.5
     omega = 4
     omega12 = 1
-    d_targ = 0.015
-    std = 0.2
-    n_nets = 7
-    toggle_log = True
-    alternating_step = 60
+    d_targ = 1
+    std = 0.25
+    n_nets = 1
+    toggle_log = False
+    alternating_step = 0
 
     device = "mps"
-    mode = "pc"
+    mode = "clip"
 
     if mode == "pc":
         assert(n_nets > 1)
@@ -674,11 +669,11 @@ if __name__ == '__main__':
             alternating_step=alternating_step,
     )
 
-    #ppo.load_state_dict(torch.load("final_models/clip_single/model_state_dict.pt"))
+    ppo.load_state_dict(torch.load("final_models/clip_single/model_state_dict.pt"))
 
     if toggle_log:
-        name = "pc_025_alternating_correct"
-        #ppo.load_parameters("final_models/" + "clip_single2")
+        name = "clip_single2"
+        #ppo.load_parameters("final_models/" + name)
 
         ppo.train_manager()
         
